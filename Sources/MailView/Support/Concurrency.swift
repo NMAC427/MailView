@@ -11,7 +11,7 @@ extension Optional {
     }
 }
 
-public extension Sequence {
+extension Sequence {
     func forEach(_ operation: (Element) async throws -> Void) async rethrows {
         for element in self {
             try await operation(element)
@@ -19,7 +19,7 @@ public extension Sequence {
     }
 }
 
-public extension Sequence {
+extension Sequence {
     func compactMap<ElementOfResult>(_ transform: (Element) async throws -> ElementOfResult?) async rethrows -> [ElementOfResult] {
         var result: [ElementOfResult] = []
 
@@ -33,7 +33,7 @@ public extension Sequence {
     }
 }
 
-public extension Sequence {
+extension Sequence {
     func map<ElementOfResult>(_ transform: (Element) async throws -> ElementOfResult) async rethrows -> [ElementOfResult] {
         var result: [ElementOfResult] = []
 
@@ -45,7 +45,7 @@ public extension Sequence {
     }
 }
 
-public extension Sequence {
+extension Sequence {
     func concurrentForEach(_ operation: @escaping (Element) async throws -> Void) async rethrows {
         // A task group automatically waits for all of its
         // sub-tasks to complete, while also performing those
@@ -60,7 +60,7 @@ public extension Sequence {
     }
 }
 
-public extension Sequence {
+extension Sequence {
     func concurrentMap<T>(_ transform: @escaping (Element) async throws -> T) async rethrows -> [T] {
         let tasks = map { element in
             Task {
