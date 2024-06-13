@@ -148,7 +148,6 @@ public extension View {
     /// - Parameters:
     ///   - mail: The mail to be sent
     ///   - onComplete: When the email composer is dimissed, this will be called with the result
-    @available(swift, obsoleted: 1, message: "Use `MailButton` instead")
     func mail(_ mail: Binding<Mail?>, onResult handler: ResultHandler? = nil) -> some View {
         background(
             MailView(
