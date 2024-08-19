@@ -158,8 +158,10 @@ public extension Mail {
     static var isSupported: Bool {
 #if os(iOS)
         MFMailComposeViewController.canSendMail()
-#else
+#elseif os(macOS)
         NSSharingService(named: .composeEmail) != nil
+#else
+        false
 #endif
     }
 

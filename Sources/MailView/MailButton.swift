@@ -65,7 +65,7 @@ public struct MailButton<Label: View>: View {
         Button {
 #if os(iOS)
             isPresented = true
-#else
+#elseif os(macOS)
             Task {
                 try await service.send(item: item, handler: internalResultHandler)
             }
@@ -90,7 +90,7 @@ public struct MailButton<Label: View>: View {
 private extension View {
     @ViewBuilder
     func alert(isPresented: Binding<Bool>, error: MailError?) -> some View {
-        if #available(iOS 15, macOS 12, *) {
+        if #available(iOS 15, macOS 12, watchOS 8, *) {
             alert(Text("Failed"), isPresented: isPresented, presenting: error) { _ in
                 Button("OK") { }
             } message: { error in
