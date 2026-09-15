@@ -1,75 +1,22 @@
 import Foundation
 
-extension Optional {
-    public func flatMap<U>(_ transform: (Wrapped) async throws -> U?) async rethrows -> U? {
-        switch self {
-        case .some(let wrapped):
-            return try await transform(wrapped)
-        case .none:
-            return nil
-        }
-    }
-}
-
-extension Sequence {
-    func forEach(_ operation: (Element) async throws -> Void) async rethrows {
-        for element in self {
-            try await operation(element)
-        }
-    }
-}
-
-extension Sequence {
-    func compactMap<ElementOfResult>(_ transform: (Element) async throws -> ElementOfResult?) async rethrows -> [ElementOfResult] {
-        var result: [ElementOfResult] = []
-
-        for element in self {
-            if let element = try await transform(element) {
-                result.append(element)
-            }
-        }
-
-        return result
-    }
-}
-
-extension Sequence {
-    func map<ElementOfResult>(_ transform: (Element) async throws -> ElementOfResult) async rethrows -> [ElementOfResult] {
-        var result: [ElementOfResult] = []
-
-        for element in self {
-            try await result.append(transform(element))
-        }
-
-        return result
-    }
-}
-
-extension Sequence {
-    func concurrentForEach(_ operation: @escaping (Element) async throws -> Void) async rethrows {
-        // A task group automatically waits for all of its
-        // sub-tasks to complete, while also performing those
-        // tasks in parallel
-        await withThrowingTaskGroup(of: Void.self) { group in
-            for element in self {
+extension Sequence where Element: Sendable {
+    func concurrentMap<T: Sendable>(_ transform: @escaping @Sendable (Element) async throws -> T) async rethrows -> [T] {
+        try await withThrowingTaskGroup(of: (offset: Int, element: T).self) { group in
+            for (offset, element) in enumerated() {
                 group.addTask {
-                    try await operation(element)
+                    (offset, try await transform(element))
                 }
             }
-        }
-    }
-}
 
-extension Sequence {
-    func concurrentMap<T>(_ transform: @escaping (Element) async throws -> T) async rethrows -> [T] {
-        let tasks = map { element in
-            Task {
-                try await transform(element)
+            var results: [(offset: Int, element: T)] = []
+            results.reserveCapacity(underestimatedCount)
+
+            while let result = try await group.next() {
+                results.append(result)
             }
-        }
 
-        return try await tasks.map { task in
-            try await task.value
+            return results.sorted { $0.offset < $1.offset }.map(\.element)
         }
     }
 }

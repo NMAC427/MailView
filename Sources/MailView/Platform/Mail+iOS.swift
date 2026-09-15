@@ -26,7 +26,7 @@ internal struct MailView: UIViewControllerRepresentable {
 }
 
 internal extension MailView {
-    final class Controller: UIViewController, MFMailComposeViewControllerDelegate, UIAdaptivePresentationControllerDelegate {
+    final class Controller: UIViewController, UIAdaptivePresentationControllerDelegate {
         private weak var controller: UIViewController?
         private weak var _delegate: UIAdaptivePresentationControllerDelegate?
 
@@ -71,21 +71,26 @@ internal extension MailView {
                 return
             }
 
-            Task {
+            Task { @MainActor in
                 do {
                     let controller = MFMailComposeViewController()
                     controller.mailComposeDelegate = self
                     self.controller = controller
 
-                    try await mail.attachments.concurrentForEach {
-                        let url = try $0.url()
+                    // Load attachment data in parallel, then hand it back
+                    // to the main actor for configuration.
+                    let attachments = try await mail.attachments.concurrentMap { attachment in
+                        let url = try attachment.url()
                         let data = try Data(contentsOf: url, options: .mappedIfSafe)
-
-                        controller.addAttachmentData(
+                        return (
                             data,
-                            mimeType: $0.contentType.preferredMIMEType ?? "text/plain",
-                            fileName: $0.filename
+                            attachment.contentType.preferredMIMEType ?? "text/plain",
+                            attachment.filename
                         )
+                    }
+
+                    for (data, mimeType, fileName) in attachments {
+                        controller.addAttachmentData(data, mimeType: mimeType, fileName: fileName)
                     }
 
                     controller.setSubject(mail.subject)
@@ -119,13 +124,13 @@ internal extension MailView {
 
         override func responds(to aSelector: Selector!) -> Bool {
             if super.responds(to: aSelector) { return true }
-            if _delegate?.responds(to: aSelector) ?? false { return true }
-            return false
+            // Delegate message forwarding is performed on the main thread by UIKit.
+            return MainActor.assumeIsolated { _delegate?.responds(to: aSelector) ?? false }
         }
 
         override func forwardingTarget(for aSelector: Selector!) -> Any? {
             if super.responds(to: aSelector) { return self }
-            return _delegate
+            return MainActor.assumeIsolated { _delegate }
         }
 
         private func dismissController() {
@@ -142,6 +147,8 @@ internal extension MailView {
         }
     }
 }
+
+extension MailView.Controller: @MainActor MFMailComposeViewControllerDelegate {}
 
 public extension View {
     /// Presents an email composer when the associated `Mail` is present

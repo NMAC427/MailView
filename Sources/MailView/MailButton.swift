@@ -66,8 +66,12 @@ public struct MailButton<Label: View>: View {
 #if os(iOS)
             isPresented = true
 #elseif os(macOS)
-            Task {
-                try await service.send(item: item, handler: internalResultHandler)
+            Task { @MainActor in
+                do {
+                    try await service.send(item: item, handler: internalResultHandler)
+                } catch {
+                    internalResultHandler(.failed(.other(error)))
+                }
             }
 #endif
         } label: {

@@ -155,6 +155,7 @@ import MessageUI
 
 public extension Mail {
     /// Returns true is mail can be sent from this device
+    @MainActor
     static var isSupported: Bool {
 #if os(iOS)
         MFMailComposeViewController.canSendMail()
@@ -166,6 +167,7 @@ public extension Mail {
     }
 
     @available(swift, deprecated: 1, renamed: "supported")
+    @MainActor
     static var canSendMail: Bool {
         isSupported
     }

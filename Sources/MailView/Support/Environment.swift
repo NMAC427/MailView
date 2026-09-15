@@ -8,7 +8,7 @@ public extension View {
 
 internal extension EnvironmentValues {
     struct MailResultEnvironmentKey: EnvironmentKey {
-        public static var defaultValue: ResultHandler?
+        public nonisolated(unsafe) static var defaultValue: ResultHandler?
     }
 
     var mailResult: MailResultEnvironmentKey.Value {
